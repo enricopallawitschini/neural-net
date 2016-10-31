@@ -25,3 +25,7 @@ Layer::Layer(int i, int t) {
 Layer::~Layer() {
     members.erase(members.begin(), members.end());
 }
+
+int Layer::Size() {
+    return size;
+}
