@@ -1,16 +1,19 @@
-#include <vector>
-
 #include "Neuron.h"
+#include <vector>
 
 class Layer {
     public:
+     enum LayerType {
+         Input,
+         Middle,
+         Output
+     };
      int id;
+     int neuronindex;
      int size;
      std::vector<Neuron> members;
-     int type;
+     LayerType type_;
 
-     Layer(int i, int t = 2);
-     ~Layer();
-
-     int Size();
+    Layer(int i, LayerType t, int nc, int sid);
+    ~Layer();
 };
