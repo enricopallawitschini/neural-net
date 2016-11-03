@@ -15,16 +15,32 @@ int main () {
         double r[layer1.size];
         for(int i = 0; i < layer1.size; ++i) {
             printf("\n\nID: %i\nBIAS %f\nTHRESHOLD: %f\n", layer1.members[i].id, layer1.members[i].bias, layer1.members[i].threshold);
-            r[i] = layer1.members[i].fire(0.4);
-            printf("\n\nFiring Neuron %i: %f", i, r[i]);
+            //r[i] = layer1.members[i].fire(0.4);
+            //printf("\n\nFiring Neuron %i: %f", i, r[i]);
         }
         printf("\nLayer Type: %i\nLayer Size: %i", layer1.type_, layer1.size);
         printf("\nNeurons that fired:\n");
         for(int i = 0; i < layer1.size; ++i) {
             if(r[i]) printf("%i\n", i);
         }
+
+        int conncount = 0;
+        net1.Bullshit();
+        for(int la = 0; la < net1.size(); ++la) {
+            Layer * curLayer = &net1.members[la];
+            for(int neur = 0; neur < curLayer->size; ++neur) {
+                Neuron * curNeuron = &curLayer->members[neur];
+                printf("\n\nNEURON WITH ID %i IS CONNECTED TO:\n", curNeuron->id);
+                for(int conn = 0; conn < curNeuron->connections.size(); ++conn) {
+                    Neuron::Connection * curConn = &curNeuron->connections[conn];
+                    printf("%i, ", curConn->partner->id);
+                    ++conncount;
+                }
+            }
+        }
+
+        printf("\n\nTOTAL CONNECTIONS: %i\n\n", conncount);
     }
-    net1.Bullshit();
     cin.get();
     return 0;
 }
