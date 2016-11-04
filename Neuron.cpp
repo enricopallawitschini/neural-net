@@ -57,8 +57,10 @@ double Neuron::fire(double weight) {
     value += weight;
     if(value >= threshold) {
        for(int i = 0; i < connections.size(); ++i) {
-           conn_weight = connections[i].weight;
-           connections[i].partner->fire(conn_weight);
+           if (connections[i].type == Out){
+               conn_weight = connections[i].weight;
+               connections[i].partner->fire(conn_weight);
+           }  
        }
        value = bias;
        return 1;
