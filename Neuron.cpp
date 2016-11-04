@@ -49,6 +49,8 @@ double Neuron::fire(double weight) {
     double conn_weight;
     double t = (double)clock();
     double timepassed = t - lastcall;
+    printf("\nId: %i Got Input Weight: %f",this->id, weight);
+
     value -= timepassed * fadetime;
     if(value < bias) {
         value = bias;
@@ -59,7 +61,9 @@ double Neuron::fire(double weight) {
        for(int i = 0; i < connections.size(); ++i) {
            if (connections[i].type == Out){
                conn_weight = connections[i].weight;
+               printf("\nFiring Weight:%f to Id: %i",weight,connections[i].partner->id);               
                connections[i].partner->fire(conn_weight);
+
            }  
        }
        value = bias;

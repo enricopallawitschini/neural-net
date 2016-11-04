@@ -8,7 +8,7 @@ using namespace std;
 
 int main () {
     srand(time(0));
-    int io [] = {2, 8};
+    int io [] = {10, 8};
     Net net1(1, 4, io);
     for(int i = 0; i < net1.size(); ++i) {
         Layer layer1 = net1.members[i];
@@ -40,6 +40,10 @@ int main () {
         }
 
         printf("\n\nTOTAL CONNECTIONS: %i\n\n", conncount);
+    }
+
+    for (int InputNeur = 0; InputNeur < net1.members[0].size; ++InputNeur){
+        bool res = net1.members[0].members[InputNeur].fire(rand() % RAND_MAX);
     }
     cin.get();
     return 0;
