@@ -6,8 +6,8 @@
 Neuron::Neuron(int i, Neuron::NeuronType nt) {
     id = i;
     type = nt;
-    bias = (double)rand() / RAND_MAX;
-    threshold = (double)rand() / RAND_MAX + 1;
+    bias = (double)rand() / (double)RAND_MAX;
+    threshold = PREDEFINED_THRESHOLD;       //(double)rand() / (double)RAND_MAX + 1;
     double t = (double)clock();
     lastcall = t;
     fadetime = 0.000001;
@@ -49,7 +49,7 @@ double Neuron::fire(double weight) {
     double conn_weight;
     double t = (double)clock();
     double timepassed = t - lastcall;
-    printf("\nId: %i Got Input Weight: %f",this->id, weight);
+    printf("\nId: %i Got Input Weight: %f, Bias: %f Threshold: %f",this->id, weight, this->bias, this->threshold);
 
     value -= timepassed * fadetime;
     if(value < bias) {
@@ -61,7 +61,7 @@ double Neuron::fire(double weight) {
        for(int i = 0; i < connections.size(); ++i) {
            if (connections[i].type == Out){
                conn_weight = connections[i].weight;
-               printf("\nFiring Weight:%f to Id: %i",weight,connections[i].partner->id);               
+               printf("\nFiring Weight:%f to Id: %i",conn_weight, connections[i].partner->id);               
                connections[i].partner->fire(conn_weight);
 
            }  
@@ -104,7 +104,9 @@ int Neuron::connect(Neuron * target) {
             if(connections[i].partner->id == target->id) return 2;
         }
     }
-    int w = rand() % RAND_MAX;
+    double w = rand() / (double)RAND_MAX;
+    //printf("\n Rand weight: %f \nRandMax:   %i ", w, RAND_MAX);               
+
     Connection conn;
     conn.partner = target;
     conn.weight = w;

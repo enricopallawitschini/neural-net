@@ -1,11 +1,9 @@
 #include <vector>
 #include <stdlib.h>
 #include "Layer.h"
+#include "Macros.h"
 
-#define MAX_NEURON_PL 30
-#define MIN_LAYER_CNT 4
-#define LAYER_CNT 4
-#define CONNECTION_JUMP 2
+
 
 class Net {
     private:

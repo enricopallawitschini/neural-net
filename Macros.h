@@ -1,0 +1,5 @@
+#define MAX_NEURON_PL 30
+#define MIN_LAYER_CNT 4
+#define LAYER_CNT 4
+#define CONNECTION_JUMP 2
+#define PREDEFINED_THRESHOLD 1.15

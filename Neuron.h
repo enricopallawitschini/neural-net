@@ -1,6 +1,8 @@
 #include <vector>
 #include <math.h>
 #include <time.h>
+#include "Macros.h"
+
 
 class Neuron {
     public:

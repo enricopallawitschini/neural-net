@@ -37,6 +37,7 @@ void Net::Bullshit() {
         
         int nn = rand() % curLayer->size; //Select random Neuron
         Neuron * curNeuron = &curLayer->members[nn];
+        printf("\nId: Neuron to Connect from: %i ",this->id);
 
         std::vector<Neuron *> n2l;      //All Neurons from the next 2 Layers
         for(int ii = ln+1; ii < ln+CONNECTION_JUMP; ++ii) {
@@ -48,6 +49,8 @@ void Net::Bullshit() {
         }
 
         int nn_in_n2l = rand() % n2l.size();
+        printf("\nId: Neuron to Connect to: %i ",n2l[nn_in_n2l]->id);
+
         curNeuron->connect(n2l[nn_in_n2l]);
 
         ++n;
