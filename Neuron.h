@@ -35,6 +35,7 @@ class Neuron {
 
      Neuron(int i, NeuronType nt);
      Neuron(int i, Neuron *);
+     Neuron(int i, NeuronType nt, double n_bias, double n_threshold, double n_fadetime);
      Neuron(int i, double n_bias, double n_threshold, std::vector<Connection> n_connections);
      ~Neuron();
 

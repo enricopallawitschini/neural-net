@@ -11,9 +11,10 @@ class Layer {
      int id;
      int neuronindex;
      int size;
-     std::vector<Neuron> members;
-     LayerType type_;
+     std::vector<Neuron> neurons;
+     LayerType type;
 
+    Layer(int i, LayerType t, int s);
     Layer(int i, LayerType t, int nc, int sid);
     ~Layer();
 };

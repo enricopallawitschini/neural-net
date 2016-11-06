@@ -24,6 +24,15 @@ Neuron::Neuron(int i, Neuron * old) {
     error = -1;
 }
 
+Neuron::Neuron(int i, NeuronType nt, double n_bias, double n_threshold, double n_fadetime) {
+    id = i;
+    type = nt;
+    bias = n_bias;
+    threshold = n_threshold;
+    fadetime = n_fadetime;
+    value = bias;
+}
+
 Neuron::Neuron(int i, double n_bias, double n_threshold, std::vector<Connection> n_connections) {
     id = i;
     bias = n_bias;
@@ -101,11 +110,11 @@ int Neuron::connect(Neuron * target) {
             Connection * c = &connections[i];
 
             Neuron * p = connections[i].partner;
-            if(connections[i].partner->id == target->id) return 2;
+            if(connections[i].partner->id == target->id) return 1;
         }
     }
     double w = rand() / (double)RAND_MAX;
-    //printf("\n Rand weight: %f \nRandMax:   %i ", w, RAND_MAX);               
+    printf("\n Conn id: %i Target id: %i ", this->id, target->id);               
 
     Connection conn;
     conn.partner = target;
@@ -117,5 +126,5 @@ int Neuron::connect(Neuron * target) {
     connfortarget.partner = this;
     connfortarget.type = In;
     target->connections.push_back(connfortarget);
-    return -1;
+    return 0;
 }

@@ -6,23 +6,16 @@
 
 
 class Net {
-    private:
-     int size_;
     public:
-     int size() const {
-         return size_;
-     }
-
-     void size(int i) {
-         size_ = i;
-     }
+     int size;
      int neuronindex;
      int id;
      
-     std::vector<Layer> members;
+     std::vector<Layer> layers;
 
+     Net();
      Net(int i, int lc, int io[]);
      ~Net();
 
-     void Bullshit();
+     int Bullshit();
 };
