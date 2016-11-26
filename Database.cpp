@@ -35,6 +35,33 @@ static int Neuron_callback(void *passed, int argc, char **argv, char **azColName
     return 0;
 }
 
+static int Connection_callback(void *passed, int argc, char **argv, char **azColName) {
+    Net * net = reinterpret_cast<Net *>(passed);
+    Neuron::ConnectionType t;
+    Neuron * curNeuron = net->get_Neuron(atoi(argv[0]));
+    Neuron * connNeuron = net->get_Neuron(atoi(argv[1]));
+    curNeuron->connect(connNeuron, atof(argv[3]));
+
+    printf("tried id: %i to target: %i\n",atoi(argv[0]),atoi(argv[1]));
+
+    return 0;
+}
+
+static int Nets_callback(void *passed, int argc, char **argv, char **azColName) {
+    std::vector<std::string>* nets_m = static_cast<std::vector<std::string> * >(passed);
+    //std::map<int, std::string> * nets_m = reinterpret_cast<map<int, std::string> *>(passed);
+    char out[BUFFERSIZE];
+    sprintf(out, "%s:%s", argv[0], argv[2]);
+    nets_m->push_back(out);
+    return 0;
+}
+
+static int Id_callback(void *passed, int argc, char **argv, char **azColName) {
+    int* id = static_cast<int * >(passed);
+    *id = atoi(argv[0]);
+    return 0;
+}
+
 Database::Database(std::string name) {
     int rc = sqlite3_open(name.c_str(), &db);
     ErrMsg = 0;
@@ -72,16 +99,33 @@ Database::Database(std::string name) {
     response = sqlite3_exec(db, sql.c_str(), callback, 0, &ErrMsg);
 }
 
-Net Database::retrieveNet(int id, std::string name = "") {
-    Net emptyNet; // Empty net will be filled in the callback process
+Database::~Database() {
+    sqlite3_close(db);
+}
+
+void Database::retrieveNet(int id, Net * emptyNet, std::string name = "") {
     std::string sql = "SELECT * FROM nets ";
     sql += name == "" ? "WHERE id = " + std::to_string(id) + ";" : "WHERE name = " + name + ";";
-    int response = sqlite3_exec(db, sql.c_str(), Net_callback, &emptyNet, &ErrMsg);
+    int response = sqlite3_exec(db, sql.c_str(), Net_callback, emptyNet, &ErrMsg);
     sql = "SELECT * FROM layers WHERE net = " + std::to_string(id) + " ORDER BY id;";
-    response = sqlite3_exec(db, sql.c_str(), Layer_callback, &emptyNet, &ErrMsg);
+    response = sqlite3_exec(db, sql.c_str(), Layer_callback, emptyNet, &ErrMsg);
     sql = "SELECT * FROM neurons WHERE net = " + std::to_string(id) + " ORDER BY layer, id;";
-    response = sqlite3_exec(db, sql.c_str(), Neuron_callback, &emptyNet, &ErrMsg);
-    return emptyNet;
+    response = sqlite3_exec(db, sql.c_str(), Neuron_callback, emptyNet, &ErrMsg);
+
+    for(int layer=0; layer < emptyNet->size; ++layer){
+        Layer curLayer = emptyNet->layers[layer];
+        for(int neuron=0; neuron< curLayer.size; ++neuron ){
+            Neuron curNeuron = curLayer.neurons[neuron];
+            sql = "SELECT * FROM connections WHERE source = " + std::to_string(curNeuron.id) + ";";
+            response = sqlite3_exec(db, sql.c_str(), Connection_callback, emptyNet, &ErrMsg);
+        }
+    }
+
+}
+void Database::GetNets(std::vector<std::string> * id_names) {
+    std::string sql = "SELECT * FROM nets ORDER BY id;";
+    int response = sqlite3_exec(db, sql.c_str(), Nets_callback, id_names, &ErrMsg);
+
 }
 
 char Database::insertNet(Net * net) {
@@ -108,7 +152,8 @@ char Database::insertNet(Net * net) {
                 std::string sql = "INSERT INTO connections VALUES(" + std::to_string(net->layers[layer].neurons[neuron].id) \
                     + ", " + std::to_string(curConn->partner->id) \
                     + ", " + std::to_string(curConn->type) \
-                    + ", " + std::to_string(curConn->weight) + ");";
+                    + ", " + std::to_string(curConn->weight) \
+                    + ", " + std::to_string(layer) + ");";
                 int response = sqlite3_exec(db, sql.c_str(), callback, 0, &ErrMsg);
             }
 
@@ -117,6 +162,7 @@ char Database::insertNet(Net * net) {
 
 }
 
-Database::~Database() {
-    sqlite3_close(db);
+void Database::nextId(std::string table, int * id) {
+    std::string sql = "SELECT Max(id) FROM %s;";
+    int response = sqlite3_exec(db, sql.c_str(), Id_callback, id, &ErrMsg);
 }

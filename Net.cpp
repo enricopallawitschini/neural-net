@@ -14,6 +14,7 @@ Net::Net(int i, int lc, int io[]) {
     }
     id = i;
     neuronindex = 0;
+    sprintf(name, "net%i", id);
     for(int n = 0; n < size; ++n) {
         int neuroncount = rand() % MAX_NEURON_PL + 1;
         if(n == 0) neuroncount = io[0];
@@ -86,3 +87,41 @@ int Net::Bullshit() {
     }
     return err;
 }
+
+int Net::get_neuronindex(){
+    if(neuronindex >0) return neuronindex;
+
+    if(size == 0) return 0;
+    neuronindex=0;
+    for(int i=0; i < size; ++i){
+        neuronindex += this->layers[i].size;
+    }
+    return neuronindex;
+}
+
+Neuron * Net::get_Neuron(int i){
+    for(int layer = 0; layer < size; ++layer){
+        Layer * curLayer = &layers[layer];
+        for(int neuron = 0; neuron < curLayer->size; ++neuron){
+            Neuron * curNeuron = &curLayer->neurons[neuron];
+            if(curNeuron->id == i) return curNeuron;
+        }
+
+    }
+}
+
+int Net::pipe_send(std::string pipename){
+    char out[BUFFERSIZE];
+    int ret;
+    
+    ret = sprintf(out,"%i:%i:%s:%i", NET, id, name, size);
+    
+    int p = open(pipename.c_str(), O_WRONLY);
+    if(p == 0){
+        printf("Could not open fifo");
+    } 
+    write(p, out, strlen(out)+1);
+    close(p);
+
+}
+

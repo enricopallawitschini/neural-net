@@ -41,7 +41,7 @@ Neuron::Neuron(int i, double n_bias, double n_threshold, std::vector<Connection>
     error = -1;
     double t = (double)clock();
     lastcall = t;
-    fadetime = 0.000001;
+    fadetime = FADETIME_PER_CLOCK;
 }
 
 Neuron::~Neuron() {
@@ -58,7 +58,7 @@ double Neuron::fire(double weight) {
     double conn_weight;
     double t = (double)clock();
     double timepassed = t - lastcall;
-    printf("\nId: %i Got Input Weight: %f, Bias: %f Threshold: %f",this->id, weight, this->bias, this->threshold);
+    printf("\nId: %i Got Input Weight: %f, Bias: %f Threshold: %f, time: %f, CPS:%f",this->id, weight, this->bias, this->threshold, t, (double)CLOCKS_PER_SEC);
 
     value -= timepassed * fadetime;
     if(value < bias) {
@@ -70,7 +70,7 @@ double Neuron::fire(double weight) {
        for(int i = 0; i < connections.size(); ++i) {
            if (connections[i].type == Out){
                conn_weight = connections[i].weight;
-               printf("\nFiring Weight:%f to Id: %i",conn_weight, connections[i].partner->id);               
+               printf("\nFiring Weight:%f to Id: %i, time %f",conn_weight, connections[i].partner->id, t);               
                connections[i].partner->fire(conn_weight);
 
            }  
@@ -123,6 +123,30 @@ int Neuron::connect(Neuron * target) {
     connections.push_back(conn);
     Connection connfortarget;
     connfortarget.weight = w;
+    connfortarget.partner = this;
+    connfortarget.type = In;
+    target->connections.push_back(connfortarget);
+    return 0;
+}
+
+int Neuron::connect(Neuron * target, double n_weight) {
+    if(connections.size() > 0) {
+        for(int i = 0; i < connections.size(); ++i) {
+            Connection * c = &connections[i];
+
+            Neuron * p = connections[i].partner;
+            if(connections[i].partner->id == target->id) return 1;
+        }
+    }
+    printf("\n Conn from db id: %i Target id: %i ", this->id, target->id);               
+
+    Connection conn;
+    conn.partner = target;
+    conn.weight = n_weight;
+    conn.type = Out;
+    connections.push_back(conn);
+    Connection connfortarget;
+    connfortarget.weight = n_weight;
     connfortarget.partner = this;
     connfortarget.type = In;
     target->connections.push_back(connfortarget);
