@@ -36,10 +36,11 @@ void mainloop() {
     while(fetch){
         if(isConnected()) {                 //both FIFO exist
             cmd = readFIFO(Askpipe).c_str();
+            if(cmd.length() < 1) continue;
             if(cmd == "Hi") {
-                int i = sendFIFO(Sendpipe,"Hi");
+                int i = sendFIFO(Sendpipe,"Ok");
             }
-            if(cmd == "OK") {
+            if(cmd == "bla") {
 
             }
             if(cmd == "GetNets") {
@@ -66,25 +67,19 @@ bool isConnected() {
     if(connected2cntrl) {
         return true;
     } 
+
+    connected2cntrl = access( CNTRL_ASK_FIFO, F_OK ) != -1 ;//have a look if CNTRL_ASK_FIFO exits
+
+    if(!connected2cntrl) return false;
+
     connected2cntrl= access( CNTRL_SEND_FIFO, F_OK ) != -1 ;//have a look if CNTRL_SEND_FIFO exits
+
     if(!connected2cntrl) {
         int pipe = mkfifo (CNTRL_SEND_FIFO, 0666);
+        Askpipe = open(CNTRL_ASK_FIFO,O_RDONLY);
         connected2cntrl = pipe > -1;
     }
-    if(connected2cntrl){
-        connected2cntrl=connected2cntrl && access( CNTRL_ASK_FIFO, F_OK ) != -1 ;//have a look if CNTRL_ASK_FIFO exits
-        if(connected2cntrl) {
-            Sendpipe = open(CNTRL_SEND_FIFO, O_WRONLY);
-            int i = sendFIFO(Sendpipe, "Hi");
-            Askpipe = open (CNTRL_ASK_FIFO, O_RDONLY);
-            if(readFIFO(Askpipe) == "Hi") {
-
-            }
-        }
-        return connected2cntrl;
-    }
-    connected2cntrl = false;
-    return false;
+    return connected2cntrl;
 }
 
 int sendFIFO(int pipe, std::string content) {
@@ -106,7 +101,7 @@ std::string readFIFO(int pipe) {
     char buffer[1024];
     size_t result;
 
-    if(pipe <= 0) printf("Fifo open error\n"); 
+    if(pipe < 0) printf("Fifo open error\n"); 
     result = read(pipe, buffer, 1024); 
     //printf("reading: %s\n", buffer);
     return buffer;
