@@ -4,6 +4,7 @@
     "version": "0.1.0",
     "command": "g++",
     "isShellCommand": true,
-    "args": ["main.cpp", "Neuron.cpp", "Layer.cpp", "Net.cpp", "Database.cpp", "-lsqlite3", "-std=c++11", "-ggdb"],
+    "args": ["main.cpp", "Neuron.cpp", "Layer.cpp", "Net.cpp", "Database.cpp", "-I/usr/lib/x86_64-linux-gnu/glib-2.0/include", 
+    "-I/usr/include/boost/", "-lsqlite3", "-pthread", "-std=c++11", "-lrt", "-ggdb"],
     "showOutput": "always"
 }

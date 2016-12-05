@@ -6,13 +6,15 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <signal.h>
+#include <boost/interprocess/ipc/message_queue.hpp>
 
 #include "Database.h"
 
 int Bullshitterror;
 Net * net1;
-bool connected2cntrl;
-int Askpipe, Sendpipe;
+bool connected2cntrl, connected2pyrat;
+int Askpipe, Sendpipe, p_Askpipe, p_Sendpipe;
 
 int main ();
 void create_randomNet(std::string cmd);
@@ -20,64 +22,161 @@ void save_Net(Net * net);
 void load_Net(int i);
 void print_Net(Net * n);
 void fire_Random(Net * net);
-bool isConnected();
+bool isConnectedCtrl();
+bool isConnectedPyrat();
 int sendFIFO(int pipe,std::string content);
 std::string readFIFO(int pipe);
 void mainloop();
 
 
-
 void mainloop() {
     bool fetch = true;
     remove(CNTRL_SEND_FIFO);
+    boost::interprocess::message_queue::remove("ctrl_send");
+
     std::string cmd;
+    std::string old_cmd;
 
 
     while(fetch){
-        if(isConnected()) {                 //both FIFO exist
-            cmd = readFIFO(Askpipe).c_str();
-            if(cmd.length() < 1) continue;
-            if(cmd == "Hi") {
-                int i = sendFIFO(Sendpipe,"Ok");
-            }
-            if(cmd == "bla") {
-
-            }
-            if(cmd == "GetNets") {
-                Database db("database.db");
-                std::vector<std::string> nets;
-                db.GetNets(&nets);
-                for(int i = 0; nets.size(); ++i) {
-                    sendFIFO(Sendpipe, NET + ":" + nets[i]);
+        if(isConnectedCtrl()) {                 //both FIFO exist
+            //                                      New code boost::interprocess::message_queue
+            try {
+                boost::interprocess::message_queue mq_ask(boost::interprocess::open_only, "ctrl_ask");
+                while(mq_ask.get_num_msg() > 0) {
+                    char message[BUFFERSIZE];
+                    unsigned int priority;
+                    boost::interprocess::message_queue::size_type recvd_size;
+                    mq_ask.receive(&message, sizeof(message), recvd_size, priority);
+                    printf("Server: %s", message);
+                    cmd = message;
+                    if(cmd.substr(0, 5) == CNTRL_CMD) {
+                        cmd = cmd.substr(6);
+                        if(cmd == "CLOSE") {
+                            fetch = false;
+                        }                        
+                        if(cmd == "END") {
+                            connected2cntrl = false;
+                        }
+                        if(cmd.substr(0, 1) == std::to_string(CMD_FIRE)) {
+                            size_t pos1 = cmd.find(":", 0) + 1;
+                            size_t pos2 = cmd.find(":", pos1);
+                            std::string tok = cmd.substr(pos1, pos2 - pos1);
+                            int i = stoi(tok);
+                            pos1 = pos2 + 1;
+                            tok = cmd.substr(pos1);
+                            double w = stod(tok);
+                            Neuron * tempNeuron = net1->get_Neuron(i);
+                            tempNeuron->fire(w);
+                        }
+                        if(cmd == "GETNETS") {
+                            Database db("database.db");
+                            std::vector<std::string> nets;
+                            db.GetNets(&nets);
+                            for(int i = 0; i < nets.size(); ++i) {
+                                std::string s;
+                                s.append(CNTRL_CMD);
+                                s.append(":");
+                                s.append(std::to_string(NET));
+                                s.append(":");
+                                s.append(nets[i]);
+                                try {
+                                    char message[BUFFERSIZE];
+                                    strcpy(message, s.c_str());
+                                    boost::interprocess::message_queue mq_send(boost::interprocess::open_only, "ctrl_send");
+                                    mq_send.send(&message, sizeof(message), 0);
+                                }
+                                catch(boost::interprocess::interprocess_exception &ex){
+                                    printf("Error while sending nets :%s\n", ex.what());
+                                }
+                            }
+                        }
+                        if(cmd.substr(0, 11) == "RETRIEVENET") {
+                            size_t pos = cmd.find(":",12);
+                            int i = stoi(cmd.substr(12, pos - 12));
+                            load_Net(i);
+                        }
+                        if(cmd.substr(0, 9) == "CREATE_RN") {
+                            create_randomNet(cmd);
+                        }
+                    }
                 }
             }
-            if(cmd == "Close") {
-                fetch = false;
+            catch(boost::interprocess::interprocess_exception &ex){
+                printf("Error receiving from client: %s\n", ex.what());
             }
-            if(cmd.substr(0, 15) == "CreateRandomNet") {
-                create_randomNet(cmd.substr(15));
-            }   
+            continue;
+
+        }
+
+            //                                          Old cod using FIFO
+
+        if(isConnectedPyrat()) {
+            cmd = readFIFO(p_Askpipe).c_str();
+            if(cmd == old_cmd) continue;
+            old_cmd = cmd;
+            printf("%s\n", cmd.c_str());
+            if(cmd.length() < 1) continue;
+            if(cmd == "Hi") {
+                p_Sendpipe = open(PYRAT_SEND_FIFO, O_WRONLY);
+                int i = sendFIFO(p_Sendpipe,"Ok");
+                i = sendFIFO(p_Sendpipe,"");
+            }
+            if(cmd.length() < 5) continue;
+            if(cmd.substr(0, 5) == CNTRL_CMD) {
+                printf("%s\n", cmd.c_str());
+
+                cmd = cmd.substr(6);
+                if(cmd == "Close") {
+                    fetch = false;
+                }
+            }
         }
     }
     ::close(Askpipe);
     ::close(Sendpipe);
+    ::close(p_Askpipe);
+    ::close(p_Sendpipe);
     remove(CNTRL_SEND_FIFO); /* Delete the created fifo */
+    remove(PYRAT_SEND_FIFO);
+    boost::interprocess::message_queue::remove("ctrl_send");
+
 }
-bool isConnected() {
+
+bool isConnectedPyrat() {
+    if(connected2pyrat) {
+        return true;
+    } 
+    connected2pyrat = access(PYRAT_ASK_FIFO, F_OK ) != -1 ;//have a look if PYRAT_ASK_FIFO exits
+    if(!connected2pyrat) return false;
+    connected2pyrat= access(PYRAT_SEND_FIFO, F_OK ) != -1 ;//have a look if PYRAT_SEND_FIFO exits
+    if(!connected2pyrat) {
+        int pipe = mkfifo (PYRAT_SEND_FIFO, 0666);
+        p_Askpipe = open(PYRAT_ASK_FIFO,O_RDONLY|O_NONBLOCK);
+        connected2pyrat = pipe > -1;
+    }
+    return connected2pyrat;
+}
+
+bool isConnectedCtrl() {
     if(connected2cntrl) {
         return true;
     } 
-
-    connected2cntrl = access( CNTRL_ASK_FIFO, F_OK ) != -1 ;//have a look if CNTRL_ASK_FIFO exits
-
-    if(!connected2cntrl) return false;
-
-    connected2cntrl= access( CNTRL_SEND_FIFO, F_OK ) != -1 ;//have a look if CNTRL_SEND_FIFO exits
-
-    if(!connected2cntrl) {
-        int pipe = mkfifo (CNTRL_SEND_FIFO, 0666);
-        Askpipe = open(CNTRL_ASK_FIFO,O_RDONLY);
-        connected2cntrl = pipe > -1;
+    try{
+        boost::interprocess::message_queue mq_send(boost::interprocess::open_or_create, "ctrl_send", 100, BUFFERSIZE);
+        connected2cntrl = true;
+    }
+    catch(boost::interprocess::interprocess_exception &ex){
+        //std::cout << ex.what() << std::endl;
+        connected2cntrl = false;
+    }
+   if(connected2cntrl) {
+       try{
+           boost::interprocess::message_queue mq_ask(boost::interprocess::open_only, "ctrl_ask");
+       }
+       catch(boost::interprocess::interprocess_exception &ex){
+            connected2cntrl = false;
+       }
     }
     return connected2cntrl;
 }
@@ -95,7 +194,6 @@ int sendFIFO(int pipe, std::string content) {
     return 0;
 }
 
-
 std::string readFIFO(int pipe) {
     int fifo;
     char buffer[1024];
@@ -110,25 +208,35 @@ std::string readFIFO(int pipe) {
 void create_randomNet(std::string cmd) {//cmd has format InputNeurons:OutputNeurons:Layercount
     int nextId;
     Database db("database.db");
-    db.nextId("Nets",&nextId);
-    std::size_t pos1 = cmd.find(":");
-    int ip_N = atoi(cmd.substr(0,pos1-1).c_str());
-    std::size_t pos2 = cmd.find(":", pos1);
-    int op_N = atoi(cmd.substr(pos1, pos2-1).c_str());
-    int lc = atoi(cmd.substr(pos2).c_str());
+    db.nextId("nets", &nextId);
+    std::size_t pos1 = cmd.find(":",0) + 1;
+    cmd = cmd.substr(pos1);
+    pos1 = cmd.find(":",0);
+    std::string tok = cmd.substr(0, pos1);
+    int ip_N = stoi(tok);
+    std::size_t pos2 = cmd.find(":", pos1 + 1);
+    tok = cmd.substr(pos1 + 1, pos2 - pos1);
+    int op_N = stoi(tok);
+    int lc = atoi(cmd.substr(pos2 + 1).c_str());
     int io [] = {ip_N, op_N};
-
+    delete(net1);
     net1 = new Net(nextId, lc, io);
     Bullshitterror = net1->Bullshit();
     save_Net(net1);
 }
 void load_Net(int i) {
-
+    delete(net1);
+    net1 = new Net();
+    Database db("database.db");
+    db.retrieveNet(i, net1);
+    net1->publish("ctrl_send");
 }
 
 int main () {
     Bullshitterror = 0;
     connected2cntrl = false;
+    connected2pyrat = false;
+    Database db("database.db");
 
     srand(time(0));
     int netId;

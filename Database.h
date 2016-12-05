@@ -14,7 +14,7 @@ class Database {
     Database(std::string name);
     ~Database();
     char insertNet(Net * net);
-    void retrieveNet(int id, Net * emptyNet, std::string name);
+    void retrieveNet(int id, Net * emptyNet );
     void GetNets(std::vector<std::string> * id_names);
     void nextId(std::string table, int * id);
 
