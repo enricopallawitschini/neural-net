@@ -127,7 +127,7 @@ int Neuron::connect(Neuron * target) {
             if(connections[i].partner->id == target->id) return 1;
         }
     }
-    double w = rand() / (double)RAND_MAX;
+    double w = (rand() / (double)RAND_MAX) - 0.5;
     printf("\n Conn id: %i Target id: %i ", this->id, target->id);               
 
     Connection conn;
